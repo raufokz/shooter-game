@@ -346,6 +346,7 @@ body::before {
 }
 
 .setting input[type="range"] {
+  appearance: none;
   -webkit-appearance: none;
   width: 100%;
   height: 8px;
@@ -370,6 +371,7 @@ body::before {
 }
 
 .setting input[type="checkbox"] {
+  appearance: none;
   -webkit-appearance: none;
   width: 40px;
   height: 20px;
