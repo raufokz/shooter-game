@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxy Shooter Pro</title>
+    <link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Preload images -->
+    <div class="preload-images">
+        <img src="assets/player-ship.png" alt="">
+        <img src="assets/enemy1.png" alt="">
+        <img src="assets/enemy2.png" alt="">
+        <img src="assets/enemy3.png" alt="">
+        <img src="assets/boss.png" alt="">
+        <img src="assets/powerup-life.png" alt="">
+        <img src="assets/powerup-rapid.png" alt="">
+        <img src="assets/powerup-shield.png" alt="">
+        <img src="assets/powerup-double.png" alt="">
+        <img src="assets/powerup-triple.png" alt="">
+        <img src="assets/powerup-special.png" alt="">
+        <img src="assets/bullet.png" alt="">
+        <img src="assets/bullet-large.png" alt="">
+        <img src="assets/plasma-wave.png" alt="">
+    </div>
+
+    <!-- Main Menu Screen -->
+    <div id="mainMenu" class="screen">
+        <div class="menu-content">
+            <h1><img src="assets/logo.png" alt="Galaxy Shooter Pro" class="logo"></h1>
+            <div class="menu-buttons">
+                <button id="playBtn" class="menu-btn"><i class="fas fa-play"></i> Play</button>
+                <button id="highscoresBtn" class="menu-btn"><i class="fas fa-trophy"></i> Highscores</button>
+                <button id="howToPlayBtn" class="menu-btn"><i class="fas fa-question-circle"></i> How to Play</button>
+                <button id="settingsBtn" class="menu-btn"><i class="fas fa-cog"></i> Settings</button>
+                <button id="exitBtn" class="menu-btn exit"><i class="fas fa-sign-out-alt"></i> Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- How to Play Screen -->
+    <div id="howToPlay" class="screen hidden">
+        <div class="content">
+            <h2><i class="fas fa-question-circle"></i> How to Play</h2>
+            <div class="instructions">
+                <div class="instruction-card">
+                    <img src="assets/controls.webp" alt="Controls">
+                    <p>Use <strong>arrow keys</strong> or <strong>WASD</strong> to move your spaceship</p>
+                    <p>Press <strong>spacebar</strong> to shoot</p>
+                    <p>Press <strong>E</strong> to activate special weapon</p>
+                </div>
+                <div class="instruction-card">
+                    <img src="assets/target.png" alt="Enemies">
+                    <p>Avoid or destroy enemies to earn points and survive</p>
+                    <p>Chain kills for combo multipliers</p>
+                    <p>Defeat the boss every 5 levels</p>
+                </div>
+                <div class="instruction-card">
+                    <img src="assets/powerups.png" alt="Powerups">
+                    <p>Collect powerups for special abilities:</p>
+                    <ul class="powerup-list">
+                        <li><img src="assets/powerup-life.png" alt=""> Extra Life</li>
+                        <li><img src="assets/powerup-rapid.png" alt=""> Rapid Fire</li>
+                        <li><img src="assets/powerup-shield.png" alt=""> Shield</li>
+                        <li><img src="assets/powerup-double.png" alt=""> Double Shot</li>
+                        <li><img src="assets/powerup-triple.png" alt=""> Triple Shot</li>
+                        <li><img src="assets/powerup-special.png" alt=""> Special Weapon</li>
+                    </ul>
+                </div>
+            </div>
+            <button id="backFromHowToPlay" class="back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+    </div>
+
+    <!-- Highscores Screen -->
+    <div id="highscores" class="screen hidden">
+        <div class="content">
+            <h2><i class="fas fa-trophy"></i> Highscores</h2>
+            <div class="scoreboard">
+                <table id="highscoresTable">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>Score</th>
+                            <th>Level</th>
+                            <th>Max Combo</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button id="backFromHighscores" class="back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings" class="screen hidden">
+        <div class="content">
+            <h2><i class="fas fa-cog"></i> Settings</h2>
+            <div class="settings-options">
+                <div class="setting">
+                    <label for="playerName">Player Name:</label>
+                    <input type="text" id="playerName" placeholder="Enter your name">
+                </div>
+                <div class="setting">
+                    <label for="volume">Volume: <span id="volumeValue">50</span>%</label>
+                    <input type="range" id="volume" min="0" max="100" value="50">
+                </div>
+                <div class="setting">
+                    <label for="difficulty">Difficulty:</label>
+                    <select id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="insane">Insane</option>
+                    </select>
+                </div>
+                <div class="setting">
+                    <label for="controls">Controls:</label>
+                    <select id="controls">
+                        <option value="arrows" selected>Arrow Keys</option>
+                        <option value="wasd">WASD</option>
+                    </select>
+                </div>
+                <div class="setting">
+                    <label for="graphics">Graphics Quality:</label>
+                    <select id="graphics">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="setting">
+                    <label for="showFPS">Show FPS:</label>
+                    <input type="checkbox" id="showFPS">
+                </div>
+            </div>
+            <button id="saveSettings" class="save-btn"><i class="fas fa-save"></i> Save Settings</button>
+            <button id="backFromSettings" class="back-btn"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" class="screen hidden">
+        <div class="game-container">
+            <canvas id="gameCanvas"></canvas>
+            <div class="ui-overlay">
+                <div class="game-info">
+                    <div id="score"><i class="fas fa-star"></i> <span>0</span></div>
+                    <div id="lives"><i class="fas fa-heart"></i> <span>3</span></div>
+                    <div id="level"><i class="fas fa-level-up-alt"></i> <span>1</span></div>
+                    <div class="speed-indicator"><i class="fas fa-tachometer-alt"></i> Speed: <span class="speed-value">5.0</span></div>
+                    <div class="combo-display" style="display: none;"></div>
+                    <div class="special-weapon-display" style="display: none;"></div>
+                </div>
+                <div class="boss-health-bar" style="display: none;">
+                    <div class="health-bar">
+                        <div class="health-fill"></div>
+                        <div class="health-text">BOSS</div>
+                    </div>
+                </div>
+                <div class="game-controls">
+                    <button id="pauseBtn"><i class="fas fa-pause"></i></button>
+                    <button id="homeBtn"><i class="fas fa-home"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pauseScreen" class="screen hidden">
+        <div class="pause-content">
+            <h2>Game Paused</h2>
+            <div class="pause-stats">
+                <p>Score: <span id="pauseScore">0</span></p>
+                <p>Level: <span id="pauseLevel">1</span></p>
+                <p>Combo: <span id="pauseCombo">0</span>x</p>
+            </div>
+            <div class="pause-buttons">
+                <button id="resumeBtn" class="pause-btn"><i class="fas fa-play"></i> Resume</button>
+                <button id="restartBtn" class="pause-btn"><i class="fas fa-redo"></i> Restart</button>
+                <button id="quitBtn" class="pause-btn"><i class="fas fa-home"></i> Quit to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Transition Screen -->
+    <div id="levelTransitionScreen" class="screen hidden">
+        <div class="transition-content">
+            <h2 id="levelTransitionText">LEVEL 2</h2>
+            <div class="level-stats">
+                <p>Score: <span id="transitionScore">0</span></p>
+                <p>Lives: <span id="transitionLives">3</span></p>
+                <p>Max Combo: <span id="transitionCombo">0</span>x</p>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="screen hidden">
+        <div class="gameover-content">
+            <h2>Game Over</h2>
+            <div class="gameover-stats">
+                <p>Final Score: <span id="finalScore">0</span></p>
+                <p>Level Reached: <span id="finalLevel">1</span></p>
+                <p>Max Combo: <span id="maxCombo">0</span>x</p>
+                <div class="name-input">
+                    <label for="playerNameInput">Enter your name:</label>
+                    <input type="text" id="playerNameInput" placeholder="Hero Pilot">
+                    <button id="saveScoreBtn"><i class="fas fa-save"></i> Save Score</button>
+                </div>
+            </div>
+            <div class="gameover-buttons">
+                <button id="playAgainBtn" class="gameover-btn"><i class="fas fa-redo"></i> Play Again</button>
+                <button id="backToMenuBtn" class="gameover-btn"><i class="fas fa-home"></i> Main Menu</button>
+                <button id="viewHighscoresBtn" class="gameover-btn"><i class="fas fa-trophy"></i> View Highscores</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
