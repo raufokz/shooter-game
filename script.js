@@ -394,6 +394,147 @@ function hideAllScreens() {
     }
 }
 
+
+
+
+
+// Add to your existing JavaScript
+
+// Screen rotation detection
+function checkScreenOrientation() {
+    if (window.innerHeight > window.innerWidth) {
+        // Portrait mode
+        document.getElementById('rotateWarning').style.display = 'block';
+    } else {
+        // Landscape mode
+        document.getElementById('rotateWarning').style.display = 'none';
+    }
+}
+
+// Add to your setup function
+function setupMobileFeatures() {
+    // Add rotation warning element
+    const rotateWarning = document.createElement('div');
+    rotateWarning.id = 'rotateWarning';
+    rotateWarning.innerHTML = `
+        <div class="rotate-warning-content">
+            <i class="fas fa-rotate-right"></i>
+            <p>Please rotate your device to landscape mode for better gameplay</p>
+        </div>
+    `;
+    document.body.appendChild(rotateWarning);
+    
+    // Initial check
+    checkScreenOrientation();
+    
+    // Listen for orientation changes
+    window.addEventListener('resize', checkScreenOrientation);
+    window.addEventListener('orientationchange', checkScreenOrientation);
+    
+    // Hide desktop-specific buttons on mobile
+    if ('ontouchstart' in window) {
+        document.querySelectorAll('.desktop-only').forEach(el => {
+            el.style.display = 'none';
+        });
+    }
+}
+
+// Modify your existing setupTouchControls function
+function setupTouchControls() {
+    if ('ontouchstart' in window) {
+        // Remove existing touch controls if they exist
+        const existingControls = document.querySelector('.touch-controls');
+        if (existingControls) {
+            existingControls.remove();
+        }
+        
+        const touchControls = document.createElement('div');
+        touchControls.className = 'touch-controls';
+        
+        // Left control
+        const leftBtn = document.createElement('div');
+        leftBtn.className = 'touch-btn left-btn';
+        leftBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+        
+        // Right control
+        const rightBtn = document.createElement('div');
+        rightBtn.className = 'touch-btn right-btn';
+        rightBtn.innerHTML = '<i class="fas fa-arrow-right"></i>';
+        
+        // Shoot control
+        const shootBtn = document.createElement('div');
+        shootBtn.className = 'touch-btn shoot-btn';
+        shootBtn.innerHTML = '<i class="fas fa-bolt"></i>';
+        
+        // Special weapon control (only show when available)
+        const specialBtn = document.createElement('div');
+        specialBtn.className = 'touch-btn special-btn hidden';
+        specialBtn.innerHTML = '<i class="fas fa-bomb"></i>';
+        
+        touchControls.appendChild(leftBtn);
+        touchControls.appendChild(rightBtn);
+        touchControls.appendChild(shootBtn);
+        touchControls.appendChild(specialBtn);
+        
+        document.querySelector('.game-container').appendChild(touchControls);
+        
+        // Touch event listeners
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys['ArrowLeft'] = true;
+        });
+        leftBtn.addEventListener('touchend', () => keys['ArrowLeft'] = false);
+        
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys['ArrowRight'] = true;
+        });
+        rightBtn.addEventListener('touchend', () => keys['ArrowRight'] = false);
+        
+        shootBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState === GAME_STATES.PLAYING) {
+                player.isShooting = true;
+            }
+        });
+        shootBtn.addEventListener('touchend', () => {
+            player.isShooting = false;
+            player.shootCooldown = 0;
+        });
+        
+        specialBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState === GAME_STATES.PLAYING && player.specialWeaponAvailable) {
+                activateSpecialWeapon();
+            }
+        });
+    }
+}
+
+// Call this when player gets special weapon
+function showSpecialWeaponButton() {
+    if ('ontouchstart' in window) {
+        const specialBtn = document.querySelector('.special-btn');
+        if (specialBtn) {
+            specialBtn.classList.remove('hidden');
+            specialBtn.classList.add('pulse');
+        }
+    }
+}
+
+// Call this when special weapon is used
+function hideSpecialWeaponButton() {
+    if ('ontouchstart' in window) {
+        const specialBtn = document.querySelector('.special-btn');
+        if (specialBtn) {
+            specialBtn.classList.add('hidden');
+            specialBtn.classList.remove('pulse');
+        }
+    }
+}
+
+
+
 // Start game
 function startGame() {
     hideAllScreens();
