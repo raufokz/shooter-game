@@ -327,8 +327,6 @@ function setupEventListeners() {
 }
 
 // Setup touch controls for mobile devices
-
-// Update the setupTouchControls function
 function setupTouchControls() {
     if ('ontouchstart' in window) {
         // Remove existing controls if they exist
@@ -442,38 +440,49 @@ function setupTouchControls() {
         });
         
         // Add finger-dragging movement
-        let dragStartX = 0;
-        let dragStartY = 0;
         let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
         
         canvas.addEventListener('touchstart', (e) => {
             // Only activate dragging if not using joystick
             if (!joystickActive && e.target === canvas) {
                 const touch = e.touches[0];
-                dragStartX = touch.clientX;
-                dragStartY = touch.clientY;
-                isDragging = true;
-                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const touchX = touch.clientX - rect.left;
+                const touchY = touch.clientY - rect.top;
+                
+                // Check if touch is near player (for dragging)
+                if (Math.abs(touchX - player.x) < player.width * 2 && 
+                    Math.abs(touchY - player.y) < player.height * 2) {
+                    isDragging = true;
+                    dragOffsetX = touchX - player.x;
+                    dragOffsetY = touchY - player.y;
+                    e.preventDefault();
+                }
             }
         });
         
         canvas.addEventListener('touchmove', (e) => {
             if (isDragging && !joystickActive) {
                 const touch = e.touches[0];
-                const dx = touch.clientX - dragStartX;
-                const dy = touch.clientY - dragStartY;
+                const rect = canvas.getBoundingClientRect();
+                const touchX = touch.clientX - rect.left;
+                const touchY = touch.clientY - rect.top;
                 
-                // Move player based on drag distance
-                player.x = Math.max(0, Math.min(canvas.width - player.width, player.x + dx));
-                player.y = Math.max(0, Math.min(canvas.height - player.height, player.y + dy));
+                // Calculate new player position based on touch position minus offset
+                player.x = Math.max(0, Math.min(canvas.width - player.width, touchX - dragOffsetX));
+                player.y = Math.max(0, Math.min(canvas.height - player.height, touchY - dragOffsetY));
                 
-                dragStartX = touch.clientX;
-                dragStartY = touch.clientY;
                 e.preventDefault();
             }
         }, { passive: false });
         
         canvas.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('touchcancel', () => {
             isDragging = false;
         });
         
@@ -528,7 +537,6 @@ function setupTouchControls() {
         }
     }
 }
-
 // Update the saveSettings function to refresh controls when autoShoot changes
 
 // Show main menu

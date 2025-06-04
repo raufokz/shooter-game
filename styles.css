@@ -979,6 +979,7 @@ body::before {
     padding: 0 20px;
     z-index: 100;
     pointer-events: none;
+    touch-action: none;
 }
 
 .joystick-area {
