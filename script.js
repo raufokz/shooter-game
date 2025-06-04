@@ -328,6 +328,7 @@ function setupEventListeners() {
 
 // Setup touch controls for mobile devices
 
+// Update the setupTouchControls function
 function setupTouchControls() {
     if ('ontouchstart' in window) {
         // Remove existing controls if they exist
@@ -432,28 +433,48 @@ function setupTouchControls() {
             }
         });
         
-        // Only add shoot button events if autoShoot is off
-        if (shootBtn) {
-            shootBtn.addEventListener('touchstart', (e) => {
-                if (gameState === GAME_STATES.PLAYING) {
-                    player.isShooting = true;
-                    e.preventDefault();
-                }
-            });
-            
-            shootBtn.addEventListener('touchend', (e) => {
-                player.isShooting = false;
-                player.shootCooldown = 0;
-                e.preventDefault();
-            });
-        }
-        
         // Special weapon button
         specialBtn.addEventListener('touchstart', (e) => {
             if (gameState === GAME_STATES.PLAYING && player.specialWeaponCharges > 0) {
                 activateSpecialWeapon();
                 e.preventDefault();
             }
+        });
+        
+        // Add finger-dragging movement
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let isDragging = false;
+        
+        canvas.addEventListener('touchstart', (e) => {
+            // Only activate dragging if not using joystick
+            if (!joystickActive && e.target === canvas) {
+                const touch = e.touches[0];
+                dragStartX = touch.clientX;
+                dragStartY = touch.clientY;
+                isDragging = true;
+                e.preventDefault();
+            }
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (isDragging && !joystickActive) {
+                const touch = e.touches[0];
+                const dx = touch.clientX - dragStartX;
+                const dy = touch.clientY - dragStartY;
+                
+                // Move player based on drag distance
+                player.x = Math.max(0, Math.min(canvas.width - player.width, player.x + dx));
+                player.y = Math.max(0, Math.min(canvas.height - player.height, player.y + dy));
+                
+                dragStartX = touch.clientX;
+                dragStartY = touch.clientY;
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
         });
         
         // Update joystick position and player movement
@@ -484,19 +505,17 @@ function setupTouchControls() {
                 const moveSpeed = player.speed * 1.5; // Slightly faster for touch controls
                 
                 // Horizontal movement
-                if (moveX < -0.3) keys['ArrowLeft'] = true;
-                else if (moveX > 0.3) keys['ArrowRight'] = true;
-                else {
-                    keys['ArrowLeft'] = false;
-                    keys['ArrowRight'] = false;
+                if (moveX < -0.3) {
+                    player.x = Math.max(0, player.x - moveSpeed);
+                } else if (moveX > 0.3) {
+                    player.x = Math.min(canvas.width - player.width, player.x + moveSpeed);
                 }
                 
                 // Vertical movement
-                if (moveY < -0.3) keys['ArrowUp'] = true;
-                else if (moveY > 0.3) keys['ArrowDown'] = true;
-                else {
-                    keys['ArrowUp'] = false;
-                    keys['ArrowDown'] = false;
+                if (moveY < -0.3) {
+                    player.y = Math.max(0, player.y - moveSpeed);
+                } else if (moveY > 0.3) {
+                    player.y = Math.min(canvas.height - player.height, player.y + moveSpeed);
                 }
             }
         }
@@ -506,12 +525,6 @@ function setupTouchControls() {
             joystick.style.transform = 'translate(0, 0)';
             joystickActive = false;
             touchId = null;
-            
-            // Stop all movement
-            keys['ArrowLeft'] = false;
-            keys['ArrowRight'] = false;
-            keys['ArrowUp'] = false;
-            keys['ArrowDown'] = false;
         }
     }
 }
