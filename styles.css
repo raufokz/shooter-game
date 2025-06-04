@@ -875,6 +875,93 @@ body::before {
     height: 45px;
     font-size: 1.1rem;
   }
+/* Touch controls positioning */
+  .touch-controls {
+    position: fixed;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    height: 100px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    z-index: 100;
+    pointer-events: none;
+  }
+  
+  .joystick-area {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    position: relative;
+    pointer-events: auto;
+  }
+  
+  .joystick {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.3);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease-out;
+  }
+  
+  .touch-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    color: white;
+    pointer-events: auto;
+  }
+  
+  /* .shoot-btn {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    background-color: rgba(255, 50, 50, 0.4);
+    width: 70px;
+    height: 70px;
+    font-size: 1.8rem;
+  } */
+  
+  .special-btn {
+    position: absolute;
+    right: 15px;
+    bottom: 90px;
+    background-color: rgba(100, 200, 255, 0.4);
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+  
+  /* Adjust enemy and powerup sizes */
+  .instruction-card img {
+    max-width: 80%;
+    height: auto;
+    margin: 0 auto 1rem;
+    display: block;
+  }
+  
+  .powerup-list img {
+    width: 20px;
+    height: 20px;
+  }
+  
+  /* Hide desktop controls on mobile */
+  .game-controls {
+    display: none !important;
+  }
 }
 
 @media (max-width: 480px) {

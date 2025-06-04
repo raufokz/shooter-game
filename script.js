@@ -75,7 +75,8 @@ let settings = {
     difficulty: "medium",
     controls: "arrows",
     graphics: "medium",
-    showFPS: false
+    showFPS: false,
+     autoShoot: true
 };
 
 // Difficulty settings
@@ -259,20 +260,29 @@ function loadSettings() {
         document.getElementById('controls').value = settings.controls;
         document.getElementById('graphics').value = settings.graphics;
         document.getElementById('showFPS').checked = settings.showFPS;
+          document.getElementById('autoShoot').checked = settings.autoShoot || true;
     }
 }
 
 // Save settings to localStorage
 function saveSettings() {
+    const wasAutoShoot = settings.autoShoot;
     settings.playerName = document.getElementById('playerName').value || "Player";
     settings.volume = parseInt(document.getElementById('volume').value);
     settings.difficulty = document.getElementById('difficulty').value;
     settings.controls = document.getElementById('controls').value;
     settings.graphics = document.getElementById('graphics').value;
     settings.showFPS = document.getElementById('showFPS').checked;
+    settings.autoShoot = document.getElementById('autoShoot').checked;
     
     localStorage.setItem('spaceShooterSettings', JSON.stringify(settings));
     updateSoundVolumes();
+    
+    // Only recreate controls if autoShoot setting changed
+    if (wasAutoShoot !== settings.autoShoot && 'ontouchstart' in window) {
+        setupTouchControls();
+    }
+    
     alert("Settings saved successfully!");
 }
 
@@ -317,46 +327,196 @@ function setupEventListeners() {
 }
 
 // Setup touch controls for mobile devices
+
 function setupTouchControls() {
     if ('ontouchstart' in window) {
-        const leftBtn = document.createElement('div');
-        leftBtn.className = 'touch-btn left-btn';
-        leftBtn.innerHTML = '&larr;';
-        
-        const rightBtn = document.createElement('div');
-        rightBtn.className = 'touch-btn right-btn';
-        rightBtn.innerHTML = '&rarr;';
-        
-        const shootBtn = document.createElement('div');
-        shootBtn.className = 'touch-btn shoot-btn';
-        shootBtn.innerHTML = 'FIRE';
-        
+        // Remove existing controls if they exist
+        const existingControls = document.querySelector('.touch-controls');
+        if (existingControls) existingControls.remove();
+
+        // Create controls container
         const touchControls = document.createElement('div');
         touchControls.className = 'touch-controls';
-        touchControls.appendChild(leftBtn);
-        touchControls.appendChild(rightBtn);
-        touchControls.appendChild(shootBtn);
         
+        // Movement Joystick Area (left side)
+        const joystickArea = document.createElement('div');
+        joystickArea.className = 'joystick-area';
+        
+        // Visual joystick
+        const joystick = document.createElement('div');
+        joystick.className = 'joystick';
+        joystickArea.appendChild(joystick);
+        
+        // Shoot Button (right side) - only create if autoShoot is off
+        let shootBtn = null;
+        if (!settings.autoShoot) {
+            shootBtn = document.createElement('div');
+            shootBtn.className = 'touch-btn shoot-btn';
+            shootBtn.innerHTML = '<i class="fas fa-bolt"></i>';
+        }
+        
+        // Special Weapon Button (when available)
+        const specialBtn = document.createElement('div');
+        specialBtn.className = 'touch-btn special-btn hidden';
+        specialBtn.innerHTML = '<i class="fas fa-bomb"></i>';
+        
+        // Add elements to controls
+        touchControls.appendChild(joystickArea);
+        if (shootBtn) touchControls.appendChild(shootBtn);
+        touchControls.appendChild(specialBtn);
+        
+        // Add to game container
         document.querySelector('.game-container').appendChild(touchControls);
         
-        // Add touch event listeners
-        leftBtn.addEventListener('touchstart', () => keys['ArrowLeft'] = true);
-        leftBtn.addEventListener('touchend', () => keys['ArrowLeft'] = false);
+        // Only add shoot button events if autoShoot is off
+        if (shootBtn) {
+            shootBtn.addEventListener('touchstart', (e) => {
+                if (gameState === GAME_STATES.PLAYING) {
+                    player.isShooting = true;
+                    e.preventDefault();
+                }
+            });
+            
+            shootBtn.addEventListener('touchend', (e) => {
+                player.isShooting = false;
+                player.shootCooldown = 0;
+                e.preventDefault();
+            });
+        }
         
-        rightBtn.addEventListener('touchstart', () => keys['ArrowRight'] = true);
-        rightBtn.addEventListener('touchend', () => keys['ArrowRight'] = false);
+        // Touch event variables
+        let touchId = null;
+        let joystickActive = false;
+        const joystickCenter = { x: 0, y: 0 };
+        const maxJoystickDistance = 50;
         
-        shootBtn.addEventListener('touchstart', () => {
-            if (gameState === GAME_STATES.PLAYING) {
-                player.isShooting = true;
+        // Handle joystick touch start
+        joystickArea.addEventListener('touchstart', (e) => {
+            if (touchId === null) {
+                const touch = e.changedTouches[0];
+                touchId = touch.identifier;
+                joystickActive = true;
+                
+                const rect = joystickArea.getBoundingClientRect();
+                joystickCenter.x = rect.left + rect.width / 2;
+                joystickCenter.y = rect.top + rect.height / 2;
+                
+                updateJoystickPosition(touch.clientX, touch.clientY);
+                e.preventDefault();
             }
         });
-        shootBtn.addEventListener('touchend', () => {
-            player.isShooting = false;
-            player.shootCooldown = 0;
+        
+        // Handle joystick movement
+        document.addEventListener('touchmove', (e) => {
+            if (joystickActive) {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    if (touch.identifier === touchId) {
+                        updateJoystickPosition(touch.clientX, touch.clientY);
+                        e.preventDefault();
+                        break;
+                    }
+                }
+            }
+        }, { passive: false });
+        
+        // Handle joystick touch end
+        document.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === touchId) {
+                    resetJoystick();
+                    e.preventDefault();
+                    break;
+                }
+            }
         });
+        
+        // Only add shoot button events if autoShoot is off
+        if (shootBtn) {
+            shootBtn.addEventListener('touchstart', (e) => {
+                if (gameState === GAME_STATES.PLAYING) {
+                    player.isShooting = true;
+                    e.preventDefault();
+                }
+            });
+            
+            shootBtn.addEventListener('touchend', (e) => {
+                player.isShooting = false;
+                player.shootCooldown = 0;
+                e.preventDefault();
+            });
+        }
+        
+        // Special weapon button
+        specialBtn.addEventListener('touchstart', (e) => {
+            if (gameState === GAME_STATES.PLAYING && player.specialWeaponCharges > 0) {
+                activateSpecialWeapon();
+                e.preventDefault();
+            }
+        });
+        
+        // Update joystick position and player movement
+        function updateJoystickPosition(clientX, clientY) {
+            const dx = clientX - joystickCenter.x;
+            const dy = clientY - joystickCenter.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // Limit joystick distance
+            const limitedDistance = Math.min(distance, maxJoystickDistance);
+            const limitedX = joystickCenter.x + Math.cos(angle) * limitedDistance;
+            const limitedY = joystickCenter.y + Math.sin(angle) * limitedDistance;
+            
+            // Position the visual joystick
+            const joystickRect = joystickArea.getBoundingClientRect();
+            const centerX = joystickRect.left + joystickRect.width / 2;
+            const centerY = joystickRect.top + joystickRect.height / 2;
+            
+            joystick.style.transform = `translate(${limitedX - centerX}px, ${limitedY - centerY}px)`;
+            
+            // Calculate movement direction (normalized)
+            const moveX = dx / maxJoystickDistance;
+            const moveY = dy / maxJoystickDistance;
+            
+            // Update player movement
+            if (gameState === GAME_STATES.PLAYING) {
+                const moveSpeed = player.speed * 1.5; // Slightly faster for touch controls
+                
+                // Horizontal movement
+                if (moveX < -0.3) keys['ArrowLeft'] = true;
+                else if (moveX > 0.3) keys['ArrowRight'] = true;
+                else {
+                    keys['ArrowLeft'] = false;
+                    keys['ArrowRight'] = false;
+                }
+                
+                // Vertical movement
+                if (moveY < -0.3) keys['ArrowUp'] = true;
+                else if (moveY > 0.3) keys['ArrowDown'] = true;
+                else {
+                    keys['ArrowUp'] = false;
+                    keys['ArrowDown'] = false;
+                }
+            }
+        }
+        
+        // Reset joystick position
+        function resetJoystick() {
+            joystick.style.transform = 'translate(0, 0)';
+            joystickActive = false;
+            touchId = null;
+            
+            // Stop all movement
+            keys['ArrowLeft'] = false;
+            keys['ArrowRight'] = false;
+            keys['ArrowUp'] = false;
+            keys['ArrowDown'] = false;
+        }
     }
 }
+
+// Update the saveSettings function to refresh controls when autoShoot changes
 
 // Show main menu
 function showMainMenu() {
@@ -522,7 +682,6 @@ function showSpecialWeaponButton() {
     }
 }
 
-// Call this when special weapon is used
 function hideSpecialWeaponButton() {
     if ('ontouchstart' in window) {
         const specialBtn = document.querySelector('.special-btn');
@@ -844,8 +1003,8 @@ function updatePlayer(deltaTime) {
         player.y += player.speed;
     }
     
-    // Shooting
-    if (player.isShooting) {
+    // Shooting - modified for auto-shoot
+    if (settings.autoShoot || player.isShooting) {
         player.shootCooldown += deltaTime;
         if (player.shootCooldown >= player.shootDelay) {
             shoot();
@@ -935,7 +1094,35 @@ function updateParticles() {
         }
     }
 }
-
+function activateSpecialWeapon() {
+    if (player.specialWeaponCharges <= 0 || specialWeaponCooldown > 0) return;
+    
+    player.specialWeaponCharges--;
+    specialWeaponActive = true;
+    specialWeaponTimer = 0;
+    
+    // Hide special weapon button on mobile
+    hideSpecialWeaponButton();
+    
+    // Create special weapon bullets (plasma wave)
+    for (let i = 0; i < 10; i++) {
+        const bullet = {
+            x: player.x + player.width / 2 - 10,
+            y: player.y - (i * 40),
+            width: 20,
+            height: 60,
+            speed: 0,
+            color: '#00ffff',
+            damage: 5 * difficultySettings[settings.difficulty].playerDamage,
+            isSpecial: true,
+            image: new Image()
+        };
+        bullet.image.src = 'assets/plasma-wave.png';
+        bullets.push(bullet);
+    }
+    
+    updateUI();
+}
 // Update Special Weapon
 function updateSpecialWeapon(deltaTime) {
     if (specialWeaponActive) {
@@ -1268,6 +1455,7 @@ function applyPowerUp(type) {
             break;
         case 'specialWeapon':
             player.specialWeaponCharges = Math.min(3, player.specialWeaponCharges + 1);
+            showSpecialWeaponButton(); // Show the button when getting a charge
             break;
     }
     updateUI();
