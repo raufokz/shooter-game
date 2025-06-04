@@ -3,13 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Galaxy Shooter Pro</title>
+    <title>Abdur Rauf Orakzai (raufokz) - Space Shooter Game</title>
+    <meta name="description" content="Professional space shooter game developed by Abdur Rauf Orakzai (raufokz). Play now for free in your browser!">
+    <meta name="author" content="Abdur Rauf Orakzai">
+    <meta name="keywords" content="Abdur Rauf, raufokz, Abdur Rauf Orakzai, space shooter, web game, HTML5 game, shooter game">
+    
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="Space Shooter by Abdur Rauf Orakzai (raufokz)">
+    <meta property="og:description" content="Professional HTML5 space shooter game developed by Abdur Rauf Orakzai">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shooter-game.raufokz.netlify.app">
+    <meta property="og:site_name" content="Space Shooter Pro">
+    <meta property="og:image" content="https://shooter-game.raufokz.netlify.app/assets/profile.jpeg">
+    <meta property="og:image:alt" content="Space Shooter Game by Abdur Rauf Orakzai">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Space Shooter by Abdur Rauf Orakzai (raufokz)">
+    <meta name="twitter:description" content="Professional HTML5 space shooter game developed by Abdur Rauf Orakzai">
+    <meta name="twitter:image" content="https://yourwebsite.com/assets/raufokz-space-game.jpg">
+    <meta name="twitter:creator" content="@raufokz">
+    
     <link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="styles.css" />
+    
+    <!-- Schema.org markup for Google -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Space Shooter Pro",
+      "author": {
+        "@type": "Person",
+        "name": "Abdur Rauf Orakzai",
+        "alternateName": "raufokz",
+        "url": "https://raufokz.netlify.app",
+        "image": "https://raufokz.netlify.app/assets/images/profile2.png",
+        "sameAs": [
+          "https://twitter.com/raufokz",
+          "https://github.com/raufokz",
+          "https://linkedin.com/in/abdur-rauf",
+          "https://instagram.com/abdurrauf500",
+          "https://tiktok.com/@rauf.developer"
+
+        ]
+      },
+      "description": "Professional space shooter game developed by Abdur Rauf Orakzai",
+      "gamePlatform": "Web Browser",
+      "applicationCategory": "Game",
+      "genre": "Shooter"
+    }
+    </script>
+    
+
   </head>
   <body>
     <!-- Preload images -->
@@ -28,6 +75,7 @@
       <img src="assets/bullet.png" alt="" />
       <img src="assets/bullet-large.png" alt="" />
       <img src="assets/plasma-wave.png" alt="" />
+      <img src="assets/profile.jpeg" alt="" /> <!-- Preload your profile image -->
     </div>
 
     <!-- Main Menu Screen -->
@@ -36,6 +84,7 @@
         <h1>
           <img src="assets/logo.png" alt="Galaxy Shooter Pro" class="logo" />
         </h1>
+        
         <div class="menu-buttons">
           <button id="playBtn" class="menu-btn">
             <i class="fas fa-play"></i> Play
@@ -166,9 +215,9 @@
             </select>
           </div>
           <div class="setting-row">
-    <label for="autoShoot">Auto Shoot:</label>
-    <input type="checkbox" id="autoShoot" checked>
-</div>
+            <label for="autoShoot">Auto Shoot:</label>
+            <input type="checkbox" id="autoShoot" checked>
+          </div>
           <div class="setting">
             <label for="showFPS">Show FPS:</label>
             <input type="checkbox" id="showFPS" />
@@ -210,7 +259,6 @@
           <div class="game-controls">
             <button id="pauseBtn"><i class="fas fa-pause"></i></button>
             <button id="homeBtn"><i class="fas fa-home"></i></button>
-
           </div>
         </div>
       </div>
@@ -280,6 +328,22 @@
           <button id="viewHighscoresBtn" class="gameover-btn">
             <i class="fas fa-trophy"></i> View Highscores
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Developer Badge (Replaces Footer) -->
+    <div class="dev-badge">
+      <img src="assets/profile.jpeg" alt="Abdur Rauf Orakzai" class="dev-pic">
+      <div class="dev-info">
+        <div class="dev-name">Abdur Rauf Orakzai</div>
+        <div class="dev-handle">Web Developer</div>
+        <div class="dev-social">
+                     <a href="https://github.com/raufokz" aria-label="GitHub" target="_blank"><i class="fab fa-github"></i></a>
+          <a href="https://linkedin.com/in/abdur-rauf" aria-label="LinkedIn" target="_blank"><i class="fab fa-linkedin"></i></a>
+          <a href="https://instagram.com/abdurrauf500" aria-label="Instagram" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://tiktok.com/@rauf.developer" aria-label="TikTok" target="_blank"><i class="fab fa-tiktok"></i></a>
+ 
         </div>
       </div>
     </div>

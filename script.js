@@ -917,7 +917,30 @@ function gameLoop(timestamp) {
     
     requestAnimationFrame(gameLoop);
 }
+// When entering game screen
+function showGameScreen() {
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.querySelector('.dev-badge').classList.add('in-game');
+  document.querySelector('.dev-badge').classList.remove('not-in-game');
+}
 
+// When leaving game screen
+function hideGameScreen() {
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.querySelector('.dev-badge').classList.remove('in-game');
+  document.querySelector('.dev-badge').classList.add('not-in-game');
+}
+
+// Example usage with your existing buttons:
+document.getElementById('playBtn').addEventListener('click', function() {
+  hideAllScreens();
+  showGameScreen();
+});
+
+document.getElementById('homeBtn').addEventListener('click', function() {
+  hideGameScreen();
+  showMainMenu();
+});
 // Update game state
 function update(deltaTime) {
     switch(gameState) {
