@@ -68,16 +68,7 @@ let player = {
     tripleShot: false
 };
 
-// Game Settings
-let settings = {
-    playerName: "Player",
-    volume: 50,
-    difficulty: "medium",
-    controls: "arrows",
-    graphics: "medium",
-    showFPS: false,
-     autoShoot: true
-};
+
 
 // Difficulty settings
 const difficultySettings = {
@@ -135,31 +126,30 @@ const screens = {
 
 // Initialize Game
 function init() {
+      console.log('init called'); 
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
-    
-    // Set canvas size
+
+    // Set canvas size and listen for resize
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
-    
-    // Load player image
+
+    // Load assets
     player.image.src = 'assets/player-ship.png';
-    
-    // Initialize starfield
+
+    // Initialize game systems
     initStarfield();
-    
-    // Load settings from localStorage
-    loadSettings();
-    
-    // Initialize sounds
+    loadSettings();          // Must come before setupTouchControls
     initSounds();
-    
-    // Set up event listeners
     setupEventListeners();
-    
+
+    // Setup touch controls
+ setupControls();    // Initialize controls
+// setupTouchControls();
     // Start game loop
     requestAnimationFrame(gameLoop);
 }
+
 
 // Resize canvas to fit window
 function resizeCanvas() {
@@ -249,42 +239,535 @@ function updateSoundVolumes() {
     sounds.bossDefeat.volume = volume;
 }
 
+/// Game Settings
+// Game Settings
+
+
+// Initialize Game
+// Game Settings
+let settings = {
+    playerName: "Player",
+    volume: 50,
+    difficulty: "medium",
+    controls: "arrows",
+    graphics: "medium",
+    showFPS: false,
+    autoShoot: true,
+    mobileControls: 'joystick' // Changed from controlMode to mobileControls for consistency
+};
+
+
 // Load settings from localStorage
 function loadSettings() {
     const savedSettings = localStorage.getItem('spaceShooterSettings');
     if (savedSettings) {
-        settings = JSON.parse(savedSettings);
-        document.getElementById('playerName').value = settings.playerName;
-        document.getElementById('volume').value = settings.volume;
-        document.getElementById('difficulty').value = settings.difficulty;
-        document.getElementById('controls').value = settings.controls;
-        document.getElementById('graphics').value = settings.graphics;
-        document.getElementById('showFPS').checked = settings.showFPS;
-          document.getElementById('autoShoot').checked = settings.autoShoot || true;
+        try {
+            const parsed = JSON.parse(savedSettings);
+            Object.assign(settings, parsed);
+            
+            // Backward compatibility for old settings
+            if (!settings.mobileControls) settings.mobileControls = "joystick";
+            
+            console.log("Loaded settings:", settings);
+        } catch (e) {
+            console.error("Error loading settings:", e);
+        }
     }
+    
+    // Update UI elements
+    document.getElementById('playerName').value = settings.playerName;
+    document.getElementById('volume').value = settings.volume;
+    document.getElementById('difficulty').value = settings.difficulty;
+    document.getElementById('controls').value = settings.controls;
+    document.getElementById('graphics').value = settings.graphics;
+    document.getElementById('showFPS').checked = settings.showFPS;
+    document.getElementById('autoShoot').checked = settings.autoShoot;
+    document.getElementById('mobileControls').value = settings.mobileControls;
+    
+    // Update volume display
+    document.getElementById('volumeValue').textContent = settings.volume;
+    
+    console.log(`Active control scheme: ${settings.controls} (Desktop), ${settings.mobileControls} (Mobile)`);
 }
 
 // Save settings to localStorage
 function saveSettings() {
-    const wasAutoShoot = settings.autoShoot;
+    // Get values from UI
     settings.playerName = document.getElementById('playerName').value || "Player";
-    settings.volume = parseInt(document.getElementById('volume').value);
-    settings.difficulty = document.getElementById('difficulty').value;
-    settings.controls = document.getElementById('controls').value;
-    settings.graphics = document.getElementById('graphics').value;
+    settings.volume = parseInt(document.getElementById('volume').value) || 50;
+    settings.difficulty = document.getElementById('difficulty').value || "medium";
+    settings.controls = document.getElementById('controls').value || "arrows";
+    settings.graphics = document.getElementById('graphics').value || "medium";
     settings.showFPS = document.getElementById('showFPS').checked;
     settings.autoShoot = document.getElementById('autoShoot').checked;
+    settings.mobileControls = document.getElementById('mobileControls').value || "joystick";
     
+    // Update volume display
+    document.getElementById('volumeValue').textContent = settings.volume;
+    
+    // Save to localStorage
     localStorage.setItem('spaceShooterSettings', JSON.stringify(settings));
-    updateSoundVolumes();
+    console.log("Settings saved:", settings);
     
-    // Only recreate controls if autoShoot setting changed
-    if (wasAutoShoot !== settings.autoShoot && 'ontouchstart' in window) {
-        setupTouchControls();
-    }
+    // Update game systems
+    updateSoundVolumes();
+    setupControls(); // Reinitialize controls
     
     alert("Settings saved successfully!");
 }
+
+// Main control setup function
+function setupControls() {
+    if ('ontouchstart' in window) {
+        setupMobileControls();
+    } else {
+        setupDesktopControls();
+    }
+}
+
+// Mobile controls implementation
+// Updated mobile controls setup
+function setupMobileControls() {
+    console.log(`Initializing mobile controls (${settings.mobileControls})...`);
+    
+    // Remove existing controls
+    const existingControls = document.querySelector('.touch-controls');
+    if (existingControls) existingControls.remove();
+
+    // Create container
+    const touchControls = document.createElement('div');
+    touchControls.className = 'touch-controls';
+    document.body.appendChild(touchControls);
+
+    // Add control type based on settings
+    switch(settings.mobileControls) {
+        case 'buttons':
+            setupButtonControls(touchControls);
+            break;
+        case 'joystick':
+            setupJoystickControls(touchControls);
+            break;
+        case 'drag':
+            setupDragControls();
+            break;
+        case 'swipe':
+            setupSwipeControls();
+            break;
+        default:
+            setupSwipeControls(); // Default to swipe
+    }
+
+    // Always add action buttons (shoot and special)
+    setupActionButtons(touchControls);
+    // Hide controls when not in game screen
+    touchControls.style.display = 'none';
+    document.addEventListener('gameScreen', () => {
+        if (gameState === GAME_STATES.PLAYING || gameState === GAME_STATES.PAUSED || gameState === GAME_STATES.GAME_OVER) {
+            touchControls.style.display = 'block';
+        } else {
+            touchControls.style.display = 'none';
+        }
+    });
+}
+
+// Button controls for mobile (left/right buttons)
+function setupButtonControls(container) {
+    const movementButtons = document.createElement('div');
+    movementButtons.className = 'movement-buttons';
+    container.appendChild(movementButtons);
+
+    // Left button
+    const leftBtn = document.createElement('div');
+    leftBtn.className = 'touch-btn left-btn';
+    leftBtn.style.left = '20px';
+    leftBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+    leftBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        keys['ArrowLeft'] = true;
+    });
+    leftBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        keys['ArrowLeft'] = false;
+    });
+    movementButtons.appendChild(leftBtn);
+
+    // Right button
+    const rightBtn = document.createElement('div');
+    rightBtn.className = 'touch-btn right-btn';
+    rightBtn.style.right = '20px';
+    rightBtn.innerHTML = '<i class="fas fa-arrow-right"></i>';
+    rightBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        keys['ArrowRight'] = true;
+    });
+    rightBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        keys['ArrowRight'] = false;
+    });
+    movementButtons.appendChild(rightBtn);
+
+    // Handle touch cancellation
+    document.addEventListener('touchcancel', () => {
+        keys['ArrowLeft'] = false;
+        keys['ArrowRight'] = false;
+    });
+}
+
+// Joystick controls for mobile
+function setupJoystickControls(container) {
+    const joystickArea = document.createElement('div');
+    joystickArea.className = 'joystick-area';
+    container.appendChild(joystickArea);
+
+    const joystick = document.createElement('div');
+    joystick.className = 'joystick';
+    joystickArea.appendChild(joystick);
+
+    let touchId = null;
+    let joystickActive = false;
+    const joystickCenter = { x: 0, y: 0 };
+    const maxJoystickDistance = 50;
+
+    joystickArea.addEventListener('touchstart', (e) => {
+        if (touchId === null && gameState === GAME_STATES.PLAYING) {
+            const touch = e.changedTouches[0];
+            touchId = touch.identifier;
+            joystickActive = true;
+            
+            const rect = joystickArea.getBoundingClientRect();
+            joystickCenter.x = rect.left + rect.width / 2;
+            joystickCenter.y = rect.top + rect.height / 2;
+            
+            updateJoystickPosition(touch.clientX, touch.clientY);
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+        if (joystickActive) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === touchId) {
+                    updateJoystickPosition(touch.clientX, touch.clientY);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i];
+            if (touch.identifier === touchId) {
+                resetJoystick();
+                e.preventDefault();
+                break;
+            }
+        }
+    });
+
+    function updateJoystickPosition(clientX, clientY) {
+        const dx = clientX - joystickCenter.x;
+        const dy = clientY - joystickCenter.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+        
+        const limitedDistance = Math.min(distance, maxJoystickDistance);
+        const limitedX = joystickCenter.x + Math.cos(angle) * limitedDistance;
+        const limitedY = joystickCenter.y + Math.sin(angle) * limitedDistance;
+        
+        const joystickRect = joystickArea.getBoundingClientRect();
+        const centerX = joystickRect.left + joystickRect.width / 2;
+        const centerY = joystickRect.top + joystickRect.height / 2;
+        
+        joystick.style.transform = `translate(${limitedX - centerX}px, ${limitedY - centerY}px)`;
+        
+        const moveX = dx / maxJoystickDistance;
+        const moveY = dy / maxJoystickDistance;
+        
+        if (gameState === GAME_STATES.PLAYING) {
+            const moveSpeed = player.speed * 1.5;
+            
+            if (moveX < -0.3) keys['ArrowLeft'] = true;
+            else keys['ArrowLeft'] = false;
+            
+            if (moveX > 0.3) keys['ArrowRight'] = true;
+            else keys['ArrowRight'] = false;
+            
+            if (moveY < -0.3) keys['ArrowUp'] = true;
+            else keys['ArrowUp'] = false;
+            
+            if (moveY > 0.3) keys['ArrowDown'] = true;
+            else keys['ArrowDown'] = false;
+        }
+    }
+
+    function resetJoystick() {
+        joystick.style.transform = 'translate(0, 0)';
+        joystickActive = false;
+        touchId = null;
+        keys['ArrowLeft'] = false;
+        keys['ArrowRight'] = false;
+        keys['ArrowUp'] = false;
+        keys['ArrowDown'] = false;
+    }
+}
+
+// Drag controls (finger follows player)
+function setupDragControls() {
+    let isDragging = false;
+    let touchId = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    canvas.addEventListener('touchstart', (e) => {
+        if (gameState === GAME_STATES.PLAYING && !isDragging) {
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+
+            // Check if touch is near player
+            if (Math.abs(touchX - (player.x + player.width/2)) < 100 && 
+                Math.abs(touchY - (player.y + player.height/2)) < 100) {
+                isDragging = true;
+                touchId = touch.identifier;
+                offsetX = touchX - player.x;
+                offsetY = touchY - player.y;
+                e.preventDefault();
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if (isDragging) {
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (touch.identifier === touchId) {
+                    const rect = canvas.getBoundingClientRect();
+                    const touchX = touch.clientX - rect.left;
+                    const touchY = touch.clientY - rect.top;
+
+                    player.x = Math.max(0, Math.min(
+                        canvas.width - player.width, 
+                        touchX - offsetX
+                    ));
+                    player.y = Math.max(0, Math.min(
+                        canvas.height - player.height, 
+                        touchY - offsetY
+                    ));
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === touchId) {
+                isDragging = false;
+                touchId = null;
+                break;
+            }
+        }
+    });
+}
+
+
+// Swipe controls (finger anywhere moves player)
+function setupSwipeControls() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchId = null;
+
+    canvas.addEventListener('touchstart', (e) => {
+        if (gameState === GAME_STATES.PLAYING) {
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchId = touch.identifier;
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if (gameState === GAME_STATES.PLAYING) {
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (touch.identifier === touchId) {
+                    const dx = touch.clientX - touchStartX;
+                    const dy = touch.clientY - touchStartY;
+                    
+                    // Update player position based on swipe
+                    player.x = Math.max(0, Math.min(
+                        canvas.width - player.width,
+                        player.x + dx * 0.5
+                    ));
+                    player.y = Math.max(0, Math.min(
+                        canvas.height - player.height,
+                        player.y + dy * 0.5
+                    ));
+                    
+                    touchStartX = touch.clientX;
+                    touchStartY = touch.clientY;
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === touchId) {
+                touchId = null;
+                break;
+            }
+        }
+    });
+}
+
+// Improved action buttons setup with better special weapon handling
+function setupActionButtons(container) {
+    // Create container for action buttons
+    const actionButtons = document.createElement('div');
+    actionButtons.className = 'action-buttons';
+    container.appendChild(actionButtons);
+
+    // Shoot button (only visible if autoShoot is disabled)
+    if (!settings.autoShoot) {
+        const shootBtn = document.createElement('div');
+        shootBtn.className = 'touch-btn shoot-btn';
+        shootBtn.innerHTML = '<i class="fas fa-bolt"></i>';
+        
+        // Add touch event listeners with visual feedback
+        shootBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            player.isShooting = true;
+            shootBtn.classList.add('active');
+        });
+        
+        shootBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            player.isShooting = false;
+            shootBtn.classList.remove('active');
+        });
+        
+        shootBtn.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            player.isShooting = false;
+            shootBtn.classList.remove('active');
+        });
+        
+        actionButtons.appendChild(shootBtn);
+    }
+
+    // Special weapon button (initially hidden)
+    const specialBtn = document.createElement('div');
+    specialBtn.className = 'touch-btn special-btn hidden';
+    specialBtn.innerHTML = '<i class="fas fa-bomb"></i>';
+    
+    // Special weapon touch handling with cooldown
+    specialBtn.addEventListener('touchstart', (e) => {
+        if (!specialBtn.classList.contains('disabled')) {
+            e.preventDefault();
+            player.useSpecial = true;
+            specialBtn.classList.add('active');
+            
+            // Visual feedback for activation
+            setTimeout(() => {
+                specialBtn.classList.remove('active');
+            }, 200);
+            
+            // Handle cooldown if applicable
+            if (player.specialWeaponCooldown > 0) {
+                specialBtn.classList.add('disabled');
+                startCooldownTimer(specialBtn, player.specialWeaponCooldown);
+            }
+        }
+    });
+    
+    actionButtons.appendChild(specialBtn);
+    
+    // Store reference for later use
+    player.specialWeaponButton = specialBtn;
+}
+
+// Show/hide special weapon button based on availability
+function updateSpecialWeaponButton() {
+    if (!player.specialWeaponButton) return;
+    
+    const specialBtn = player.specialWeaponButton;
+    
+    if (player.hasSpecialWeapon) {
+        specialBtn.classList.remove('hidden');
+        
+        // Add pulse animation if not in cooldown
+        if (!specialBtn.classList.contains('disabled')) {
+            specialBtn.classList.add('pulse');
+        }
+    } else {
+        specialBtn.classList.add('hidden');
+        specialBtn.classList.remove('pulse');
+    }
+}
+
+// Handle special weapon cooldown
+function startCooldownTimer(button, cooldownTime) {
+    button.classList.add('disabled');
+    button.classList.remove('pulse');
+    
+    // Create progress element if it doesn't exist
+    let progress = button.querySelector('.cooldown-progress');
+    if (!progress) {
+        progress = document.createElement('div');
+        progress.className = 'cooldown-progress';
+        button.appendChild(progress);
+    }
+    
+    progress.style.display = 'block';
+    progress.style.animation = `cooldown ${cooldownTime}ms linear`;
+    
+    setTimeout(() => {
+        button.classList.remove('disabled');
+        progress.style.display = 'none';
+        
+        // Only add pulse if player still has special weapon
+        if (player.hasSpecialWeapon) {
+            button.classList.add('pulse');
+        }
+    }, cooldownTime);
+}
+
+
+// Desktop controls implementation
+function setupDesktopControls() {
+    console.log(`Initializing desktop controls (${settings.controls})...`);
+    // Keyboard controls are handled by the existing key event listeners
+    
+}
+
+// Update player movement in your game loop
+function updateGame() {
+    // ... other update code ...
+    
+    // Handle mobile button movement
+    const moveSpeed = player.speed * 1.5;
+    if (player.movingUp) player.y = Math.max(0, player.y - moveSpeed);
+    if (player.movingDown) player.y = Math.min(canvas.height - player.height, player.y + moveSpeed);
+    if (player.movingLeft) player.x = Math.max(0, player.x - moveSpeed);
+    if (player.movingRight) player.x = Math.min(canvas.width - player.width, player.x + moveSpeed);
+    
+    // ... rest of game update code ...
+}
+
+// Initialize game
+loadSettings();
+setupControls();
+// Setup button controls
+
 
 // Set up event listeners
 function setupEventListeners() {
@@ -323,221 +806,8 @@ function setupEventListeners() {
     document.addEventListener('keyup', handleKeyUp);
     
     // Touch controls for mobile
-    setupTouchControls();
 }
 
-// Setup touch controls for mobile devices
-function setupTouchControls() {
-    if ('ontouchstart' in window) {
-        // Remove existing controls if they exist
-        const existingControls = document.querySelector('.touch-controls');
-        if (existingControls) existingControls.remove();
-
-        // Create controls container
-        const touchControls = document.createElement('div');
-        touchControls.className = 'touch-controls';
-        
-        // Movement Joystick Area (left side)
-        const joystickArea = document.createElement('div');
-        joystickArea.className = 'joystick-area';
-        
-        // Visual joystick
-        const joystick = document.createElement('div');
-        joystick.className = 'joystick';
-        joystickArea.appendChild(joystick);
-        
-        // Shoot Button (right side) - only create if autoShoot is off
-        let shootBtn = null;
-        if (!settings.autoShoot) {
-            shootBtn = document.createElement('div');
-            shootBtn.className = 'touch-btn shoot-btn';
-            shootBtn.innerHTML = '<i class="fas fa-bolt"></i>';
-        }
-        
-        // Special Weapon Button (when available)
-        const specialBtn = document.createElement('div');
-        specialBtn.className = 'touch-btn special-btn hidden';
-        specialBtn.innerHTML = '<i class="fas fa-bomb"></i>';
-        
-        // Add elements to controls
-        touchControls.appendChild(joystickArea);
-        if (shootBtn) touchControls.appendChild(shootBtn);
-        touchControls.appendChild(specialBtn);
-        
-        // Add to game container
-        document.querySelector('.game-container').appendChild(touchControls);
-        
-        // Only add shoot button events if autoShoot is off
-        if (shootBtn) {
-            shootBtn.addEventListener('touchstart', (e) => {
-                if (gameState === GAME_STATES.PLAYING) {
-                    player.isShooting = true;
-                    e.preventDefault();
-                }
-            });
-            
-            shootBtn.addEventListener('touchend', (e) => {
-                player.isShooting = false;
-                player.shootCooldown = 0;
-                e.preventDefault();
-            });
-        }
-        
-        // Touch event variables
-        let touchId = null;
-        let joystickActive = false;
-        const joystickCenter = { x: 0, y: 0 };
-        const maxJoystickDistance = 50;
-        
-        // Handle joystick touch start
-        joystickArea.addEventListener('touchstart', (e) => {
-            if (touchId === null) {
-                const touch = e.changedTouches[0];
-                touchId = touch.identifier;
-                joystickActive = true;
-                
-                const rect = joystickArea.getBoundingClientRect();
-                joystickCenter.x = rect.left + rect.width / 2;
-                joystickCenter.y = rect.top + rect.height / 2;
-                
-                updateJoystickPosition(touch.clientX, touch.clientY);
-                e.preventDefault();
-            }
-        });
-        
-        // Handle joystick movement
-        document.addEventListener('touchmove', (e) => {
-            if (joystickActive) {
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.identifier === touchId) {
-                        updateJoystickPosition(touch.clientX, touch.clientY);
-                        e.preventDefault();
-                        break;
-                    }
-                }
-            }
-        }, { passive: false });
-        
-        // Handle joystick touch end
-        document.addEventListener('touchend', (e) => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === touchId) {
-                    resetJoystick();
-                    e.preventDefault();
-                    break;
-                }
-            }
-        });
-        
-        // Special weapon button
-        specialBtn.addEventListener('touchstart', (e) => {
-            if (gameState === GAME_STATES.PLAYING && player.specialWeaponCharges > 0) {
-                activateSpecialWeapon();
-                e.preventDefault();
-            }
-        });
-        
-        // Add finger-dragging movement
-        let isDragging = false;
-        let dragOffsetX = 0;
-        let dragOffsetY = 0;
-        
-        canvas.addEventListener('touchstart', (e) => {
-            // Only activate dragging if not using joystick
-            if (!joystickActive && e.target === canvas) {
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const touchX = touch.clientX - rect.left;
-                const touchY = touch.clientY - rect.top;
-                
-                // Check if touch is near player (for dragging)
-                if (Math.abs(touchX - player.x) < player.width * 2 && 
-                    Math.abs(touchY - player.y) < player.height * 2) {
-                    isDragging = true;
-                    dragOffsetX = touchX - player.x;
-                    dragOffsetY = touchY - player.y;
-                    e.preventDefault();
-                }
-            }
-        });
-        
-        canvas.addEventListener('touchmove', (e) => {
-            if (isDragging && !joystickActive) {
-                const touch = e.touches[0];
-                const rect = canvas.getBoundingClientRect();
-                const touchX = touch.clientX - rect.left;
-                const touchY = touch.clientY - rect.top;
-                
-                // Calculate new player position based on touch position minus offset
-                player.x = Math.max(0, Math.min(canvas.width - player.width, touchX - dragOffsetX));
-                player.y = Math.max(0, Math.min(canvas.height - player.height, touchY - dragOffsetY));
-                
-                e.preventDefault();
-            }
-        }, { passive: false });
-        
-        canvas.addEventListener('touchend', () => {
-            isDragging = false;
-        });
-        
-        canvas.addEventListener('touchcancel', () => {
-            isDragging = false;
-        });
-        
-        // Update joystick position and player movement
-        function updateJoystickPosition(clientX, clientY) {
-            const dx = clientX - joystickCenter.x;
-            const dy = clientY - joystickCenter.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const angle = Math.atan2(dy, dx);
-            
-            // Limit joystick distance
-            const limitedDistance = Math.min(distance, maxJoystickDistance);
-            const limitedX = joystickCenter.x + Math.cos(angle) * limitedDistance;
-            const limitedY = joystickCenter.y + Math.sin(angle) * limitedDistance;
-            
-            // Position the visual joystick
-            const joystickRect = joystickArea.getBoundingClientRect();
-            const centerX = joystickRect.left + joystickRect.width / 2;
-            const centerY = joystickRect.top + joystickRect.height / 2;
-            
-            joystick.style.transform = `translate(${limitedX - centerX}px, ${limitedY - centerY}px)`;
-            
-            // Calculate movement direction (normalized)
-            const moveX = dx / maxJoystickDistance;
-            const moveY = dy / maxJoystickDistance;
-            
-            // Update player movement
-            if (gameState === GAME_STATES.PLAYING) {
-                const moveSpeed = player.speed * 1.5; // Slightly faster for touch controls
-                
-                // Horizontal movement
-                if (moveX < -0.3) {
-                    player.x = Math.max(0, player.x - moveSpeed);
-                } else if (moveX > 0.3) {
-                    player.x = Math.min(canvas.width - player.width, player.x + moveSpeed);
-                }
-                
-                // Vertical movement
-                if (moveY < -0.3) {
-                    player.y = Math.max(0, player.y - moveSpeed);
-                } else if (moveY > 0.3) {
-                    player.y = Math.min(canvas.height - player.height, player.y + moveSpeed);
-                }
-            }
-        }
-        
-        // Reset joystick position
-        function resetJoystick() {
-            joystick.style.transform = 'translate(0, 0)';
-            joystickActive = false;
-            touchId = null;
-        }
-    }
-}
-// Update the saveSettings function to refresh controls when autoShoot changes
 
 // Show main menu
 function showMainMenu() {
@@ -620,88 +890,9 @@ function setupMobileFeatures() {
     }
 }
 
-// Modify your existing setupTouchControls function
-function setupTouchControls() {
-    if ('ontouchstart' in window) {
-        // Remove existing touch controls if they exist
-        const existingControls = document.querySelector('.touch-controls');
-        if (existingControls) {
-            existingControls.remove();
-        }
-        
-        const touchControls = document.createElement('div');
-        touchControls.className = 'touch-controls';
-        
-        // Left control
-        const leftBtn = document.createElement('div');
-        leftBtn.className = 'touch-btn left-btn';
-        leftBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
-        
-        // Right control
-        const rightBtn = document.createElement('div');
-        rightBtn.className = 'touch-btn right-btn';
-        rightBtn.innerHTML = '<i class="fas fa-arrow-right"></i>';
-        
-        // Shoot control
-        const shootBtn = document.createElement('div');
-        shootBtn.className = 'touch-btn shoot-btn';
-        shootBtn.innerHTML = '<i class="fas fa-bolt"></i>';
-        
-        // Special weapon control (only show when available)
-        const specialBtn = document.createElement('div');
-        specialBtn.className = 'touch-btn special-btn hidden';
-        specialBtn.innerHTML = '<i class="fas fa-bomb"></i>';
-        
-        touchControls.appendChild(leftBtn);
-        touchControls.appendChild(rightBtn);
-        touchControls.appendChild(shootBtn);
-        touchControls.appendChild(specialBtn);
-        
-        document.querySelector('.game-container').appendChild(touchControls);
-        
-        // Touch event listeners
-        leftBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            keys['ArrowLeft'] = true;
-        });
-        leftBtn.addEventListener('touchend', () => keys['ArrowLeft'] = false);
-        
-        rightBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            keys['ArrowRight'] = true;
-        });
-        rightBtn.addEventListener('touchend', () => keys['ArrowRight'] = false);
-        
-        shootBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameState === GAME_STATES.PLAYING) {
-                player.isShooting = true;
-            }
-        });
-        shootBtn.addEventListener('touchend', () => {
-            player.isShooting = false;
-            player.shootCooldown = 0;
-        });
-        
-        specialBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (gameState === GAME_STATES.PLAYING && player.specialWeaponAvailable) {
-                activateSpecialWeapon();
-            }
-        });
-    }
-}
 
 // Call this when player gets special weapon
-function showSpecialWeaponButton() {
-    if ('ontouchstart' in window) {
-        const specialBtn = document.querySelector('.special-btn');
-        if (specialBtn) {
-            specialBtn.classList.remove('hidden');
-            specialBtn.classList.add('pulse');
-        }
-    }
-}
+
 
 function hideSpecialWeaponButton() {
     if ('ontouchstart' in window) {
@@ -720,15 +911,18 @@ function startGame() {
     hideAllScreens();
     screens.gameScreen.classList.remove('hidden');
     gameState = GAME_STATES.PLAYING;
-    
+
     // Play background music
     sounds.background.currentTime = 0;
     sounds.background.play();
-    
+
     // Reset game state
     resetGame();
-    
+
     updateUI();
+
+    // Dispatch event to update UI elements like controls
+    document.dispatchEvent(new Event('gameScreen'));
 }
 
 // Reset game state
@@ -1503,6 +1697,25 @@ function applyPowerUp(type) {
             break;
     }
     updateUI();
+}
+function showSpecialWeaponButton() {
+    if ('ontouchstart' in window) {
+        const specialBtn = document.querySelector('.special-btn');
+        if (specialBtn) {
+            specialBtn.classList.remove('hidden');
+            specialBtn.classList.add('pulse');
+            specialBtn.addEventListener('touchstart', () => {
+                useSpecialWeapon();
+            });
+        }
+    }
+}
+function useSpecialWeapon() {
+    if (player.specialWeaponCharges > 0) {
+        activateSpecialWeapon();
+        player.specialWeaponCharges--;
+        updateUI();
+    }
 }
 
 // Player Shoot
