@@ -577,7 +577,12 @@ function setupDragControls() {
 
 
 // Swipe controls (finger anywhere moves player)
-function setupSwipeControls() {
+function setupSwipeControls(container) {
+    const targetCanvas = container?.querySelector('canvas') || canvas;
+    if (!targetCanvas) {
+        console.error('No canvas element found');
+        return;
+    }
     let touchStartX = 0;
     let touchStartY = 0;
     let touchId = null;
