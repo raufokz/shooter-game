@@ -1711,6 +1711,8 @@ function showSpecialWeaponButton() {
             specialBtn.classList.add('pulse');
             specialBtn.addEventListener('touchstart', () => {
                 useSpecialWeapon();
+                specialBtn.classList.add('hidden');
+                specialBtn.classList.remove('pulse');
             });
         }
     }
@@ -1862,41 +1864,104 @@ function createExplosion(x, y, color, particleCount = 20) {
 }
 
 // Check for Level Up
+
+
+// Level Up
+// Show level transition screen with progress bar and stats
+function showLevelTransition(level, score, lives, maxCombo, duration = 3000) {
+  const levelScreen = document.getElementById('levelTransitionScreen');
+  const levelText = document.getElementById('levelTransitionText');
+  const scoreSpan = document.getElementById('transitionScore');
+  const livesSpan = document.getElementById('transitionLives');
+  const comboSpan = document.getElementById('transitionCombo');
+  const progressFill = levelScreen.querySelector('.progress-fill');
+
+  // Set text values with safe fallback if undefined
+  levelText.textContent = `LEVEL ${level}`;
+  scoreSpan.textContent = score;
+  livesSpan.textContent = (lives !== undefined && lives !== null) ? lives : 0;
+  comboSpan.textContent = ((maxCombo !== undefined && maxCombo !== null) ? maxCombo : 0) + 'x';
+
+  // Show the transition screen
+  levelScreen.classList.remove('hidden');
+
+  // Reset progress bar
+  progressFill.style.width = '0%';
+  progressFill.setAttribute('aria-valuenow', 0);
+
+  let startTime = null;
+
+  // Animate the progress bar fill over duration milliseconds
+  function animateProgress(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const elapsed = timestamp - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const percent = progress * 100;
+
+    progressFill.style.width = `${percent}%`;
+    progressFill.setAttribute('aria-valuenow', Math.floor(percent));
+
+    if (progress < 1) {
+      requestAnimationFrame(animateProgress);
+    } else {
+      // Hide the screen after progress completes
+      levelScreen.classList.add('hidden');
+
+      // Set game state back to playing
+      gameState = GAME_STATES.PLAYING;
+    }
+  }
+
+  requestAnimationFrame(animateProgress);
+}
+
 function checkLevelUp() {
-    const scoreNeeded = level * 5000;
+    // Exponentially increase score needed (e.g., level^1.5)
+    const scoreNeeded = Math.floor(5000 * Math.pow(level, 1.5));
     if (score >= scoreNeeded) {
         levelUp();
     }
 }
 
-// Level Up
+// Level up function: increments level, updates player and enemies, shows transition screen
 function levelUp() {
-    level++;
-    
-    // Play level up sound
-    sounds.levelup.currentTime = 0;
-    sounds.levelup.play();
-    
-    // Show level transition screen
-    gameState = GAME_STATES.LEVEL_TRANSITION;
-    screens.levelTransitionScreen.classList.remove('hidden');
-    document.getElementById('levelTransitionText').textContent = `LEVEL ${level}`;
-    
-    // Increase player speed slightly each level
-    player.baseSpeed = 5 + (level * 0.1);
-    player.speed = player.baseSpeed;
-    
-    // Clear all enemies and bullets
-    enemies = [];
-    bullets = [];
-    powerUps = [];
-    
-    // Reset timers
-    enemySpawnTimer = 0;
-    powerUpTimer = 0;
-    
-    updateUI();
+  level++;
+
+  // Debug current stats before showing transition
+  console.log('Level:', level, 'Score:', score, 'Lives:', lives, 'Max Combo:', maxCombo);
+
+  // Play level up sound
+  sounds.levelup.currentTime = 0;
+  sounds.levelup.play();
+
+  // Show level transition screen with current stats
+  gameState = GAME_STATES.LEVEL_TRANSITION;
+  showLevelTransition(level, score, lives, maxCombo);
+
+  // Increase player speed with level
+  player.baseSpeed = 5 + (level * 0.1);
+  player.speed = player.baseSpeed;
+
+  // Clear all enemies, bullets, and power-ups on level up
+  enemies = [];
+  bullets = [];
+  powerUps = [];
+
+  // Reset spawn timers
+  enemySpawnTimer = 0;
+  powerUpTimer = 0;
+
+  // Update UI elements such as level display, score, lives
+  updateUI();
+
+  // Increase enemy toughness with level progression
+  enemyTypes.forEach(type => {
+    type.health = Math.floor(type.health * (1 + (level * 0.1)));
+    type.speed = type.speed * (1 + (level * 0.05));
+    type.score = Math.floor(type.score * (1 + (level * 0.1)));
+  });
 }
+
 
 // Handle Key Down
 function handleKeyDown(e) {
@@ -2131,20 +2196,28 @@ function drawParticles() {
 // Draw Special Weapon Effect
 function drawSpecialWeapon() {
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+    
+    // Set global composite operation for a more impactful effect
+    ctx.globalCompositeOperation = 'lighter';
+    
+    // Draw a semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw wave effect
-    ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, player.y + 50);
-    ctx.bezierCurveTo(
-        canvas.width/4, player.y + 30,
-        (canvas.width*3)/4, player.y + 70,
-        canvas.width, player.y + 50
-    );
-    ctx.stroke();
+    // Create multiple powerful-looking bullet effects
+    for (let i = 0; i < 10; i++) {
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.1 + i * 0.1})`;
+        ctx.lineWidth = 2 + i;
+        ctx.beginPath();
+        ctx.moveTo(0, player.y + 50 - i * 5);
+        ctx.bezierCurveTo(
+            canvas.width / 4, player.y + 30 - i * 5,
+            (canvas.width * 3) / 4, player.y + 70 + i * 5,
+            canvas.width, player.y + 50 + i * 5
+        );
+        ctx.stroke();
+    }
+    
     ctx.restore();
 }
 
